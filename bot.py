@@ -1,10 +1,12 @@
+import os
 import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
-TOKEN = "8593578684:AAFOyFgjmO4RogWyZkO8sV_PPL9ala6oW20"  # 🔴 خپل token دلته واچوه
+# ✅ SAFE TOKEN (Railway variable)
+TOKEN = os.getenv("BOT_TOKEN")
 
-# 📚 Book Search (Google Books API)
+# 📚 Search function
 def search_books(query):
     try:
         url = f"https://www.googleapis.com/books/v1/volumes?q={query}&maxResults=5"
@@ -13,7 +15,7 @@ def search_books(query):
         items = r.get("items", [])
 
         if not items:
-            return "❌ هېڅ کتاب پیدا نه شو\n👉 بل نوم try کړه"
+            return "❌ هېڅ کتاب پیدا نه شو\n👉 بل نوم ولیکه"
 
         result = ""
 
@@ -26,12 +28,12 @@ def search_books(query):
 
             result += f"📚 {title}\n👤 {authors}\n🔗 {link}\n\n"
 
-        return result
+        return result[:3500]  # safe limit
 
     except:
-        return "⚠️ Network یا API error"
+        return "⚠️ Network error یا API مشکل"
 
-# 🧠 SMART SEARCH
+# 🧠 smart routing
 def smart(text):
     text = text.lower()
 
@@ -46,23 +48,26 @@ def smart(text):
 
     return search_books(text)
 
-# 🤖 START
+# /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Welcome!\n📚 کتاب نوم ولیکه زه به درته پیدا کړم"
     )
 
-# 🔍 MESSAGE HANDLER
+# message handler
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    result = smart(text)
-    await update.message.reply_text(result)
+    try:
+        text = update.message.text
+        result = smart(text)
+        await update.message.reply_text(result)
+    except Exception as e:
+        await update.message.reply_text("⚠️ Error occurred")
 
-# 🚀 RUN BOT
+# main
 app = Application.builder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
 
-print("🤖 Clean Bot Running...")
+print("🤖 Bot running...")
 app.run_polling()
